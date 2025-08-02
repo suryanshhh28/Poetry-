@@ -7,15 +7,39 @@ from xml.etree import ElementTree as ET
 ACADEMIC_KEYWORDS = ["university", "college", "institute", "school", "hospital", "dept", "department", "centre", "center", "faculty"]
 COMPANY_KEYWORDS = ["pharma", "biotech", "therapeutics", "inc", "ltd", "llc", "corporation", "gmbh", "co."]
 
+# def fetch_pubmed_ids(query: str, retmax: int = 50, debug: bool = False) -> List[str]:
+#     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
+#     params = {"db": "pubmed", "term": query, "retmax": retmax, "retmode": "json"}
+#     response = requests.get(url, params=params)
+#     response.raise_for_status()
+#     ids = response.json().get("esearchresult", {}).get("idlist", [])
+#     if debug:
+#         print(f"Fetched PubMed IDs: {ids}")
+#     return ids
+
 def fetch_pubmed_ids(query: str, retmax: int = 50, debug: bool = False) -> List[str]:
     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     params = {"db": "pubmed", "term": query, "retmax": retmax, "retmode": "json"}
-    response = requests.get(url, params=params)
-    response.raise_for_status()
-    ids = response.json().get("esearchresult", {}).get("idlist", [])
-    if debug:
-        print(f"Fetched PubMed IDs: {ids}")
-    return ids
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        ids = response.json().get("esearchresult", {}).get("idlist", [])
+        if debug:
+            print(f"Fetched PubMed IDs: {ids}")
+        return ids
+
+    except requests.exceptions.Timeout:
+        print("❌ PubMed ID fetch failed: Request timed out.")
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ PubMed ID fetch failed: HTTP error - {e}")
+    except requests.exceptions.RequestException as e:
+        print(f"❌ PubMed ID fetch failed: Request error - {e}")
+    except Exception as e:
+        print(f"❌ PubMed ID fetch failed: Unexpected error - {e}")
+
+    return []
+
 
 def fetch_pubmed_details(pubmed_ids: List[str], debug: bool = False) -> List[Dict]:
     url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
@@ -24,6 +48,31 @@ def fetch_pubmed_details(pubmed_ids: List[str], debug: bool = False) -> List[Dic
         "id": ",".join(pubmed_ids),
         "retmode": "xml"
     }
+
+    if not pubmed_ids:
+        return []
+
+    try:
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        root = ET.fromstring(response.text)
+
+    except requests.exceptions.Timeout:
+        print("❌ PubMed details fetch failed: Request timed out.")
+        return []
+    except requests.exceptions.HTTPError as e:
+        print(f"❌ PubMed details fetch failed: HTTP error - {e}")
+        return []
+    except requests.exceptions.RequestException as e:
+        print(f"❌ PubMed details fetch failed: Request error - {e}")
+        return []
+    except ET.ParseError as e:
+        print(f"❌ PubMed details fetch failed: XML parse error - {e}")
+        return []
+    except Exception as e:
+        print(f"❌ PubMed details fetch failed: Unexpected error - {e}")
+        return []
+
     response = requests.get(url, params=params)
     response.raise_for_status()
     root = ET.fromstring(response.text)
