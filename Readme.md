@@ -16,11 +16,11 @@ A Python command-line tool to search PubMed for research papers and **identify p
 ---
 
 ## 🛠️ Installation
-`
-```bash
+```
 git clone https://github.com/your-username/pubmed-paper-fetcher.git
 cd pubmed-paper-fetcher
 poetry install
+```
 
 ## 🧪 Usage
 
